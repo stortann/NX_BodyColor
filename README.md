@@ -1,5 +1,5 @@
 # NX_BodyColor
-Macro in NX so I don't have to look up the values of some colors anymore
+Macro in NX so I don't have to look up the values of some colors anymore. It was tested on Siemens NX 2412.3
 
 ## Funcionality
 Journal desciption:<br />
@@ -12,3 +12,6 @@ Journal desciption:<br />
 {186, 6, 211, 31} = red, yellow, blue, cyan <br />
 in that case the body will be colored according to the index from the first array in this array <br />
 {1, 159, 201, 210} = white, medium gray, iron gray, charcoal grey
+
+## Change Log
+v1 - 2025-11 - First created
