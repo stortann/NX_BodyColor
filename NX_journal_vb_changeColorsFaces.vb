@@ -1,12 +1,14 @@
 ' Journal desciption:
-' 1/ Changes session's settings to Part Shininess
-' 2/ Sets Background to Plain White (1.0, 1.0, 1.0)
-' 3/ Changes all of the lights to 0.0 except "Ambient" which will be 1.0
-' 4/ Turns off Shaded Edges 
-' 5/ Hides everything that is not a body
-' 6/ Changes colors of bodies according to a specific rule, look into code to find exact parameters
-' Written in VB.Net
+' 1/ Turns off Translucency
+' 2/ Changes session's settings to Part Shininess
+' 3/ Turns off Shaded Edges 
+' 4/ Sets Background to Plain White (1.0, 1.0, 1.0)
+' 5/ Changes all of the lights to 0.0 except "Ambient" which will be 1.0
+' 6/ Hides known things that are not a body - this code needs to be updated in case that it didn't hide something 
+' 7/ Changes colors of bodies according to a specific rule, look into code to find exact parameters
+' Written In VB.Net
 ' Tested on Siemens NX 2412
+
 
 Imports System
 Imports NXOpen
@@ -14,23 +16,38 @@ Imports NXOpenUI
 Imports NXOpen.UF
 Imports NXOpen.Features
 
+
 Module NXJournal
 	Sub Main (ByVal args() As String) 
 
 		Dim theSession As NXOpen.Session = NXOpen.Session.GetSession()
+		Dim theDisplayManager As DisplayManager = NXOpen.Session.GetSession().DisplayManager
 		Dim workPart As NXOpen.Part = theSession.Parts.Work
 		Dim theUISession As UI = UI.GetUI
-		Dim lw As ListingWindow = theSession.ListingWindow
+		Dim lw As ListingWindow = theSession.ListingWindow		
 		
-		' lw.Open()
-		' lw.WriteLine("Hi!")
-		' lw.Close()
 		
+		' If a color is In "colors" it will be changed to a color from "myColors" from the same index, otherwise nothing
+		' Example: 186/red will be changed to 123/smoke gray, but not vice versa
+		' red, yellow, blue, cyan
+		Dim colors = New Integer() {186, 6, 211, 31}
+		
+		' smoke gray, medium gray, iron gray, charcoal grey
+		Dim myColors = New Integer() {123, 159, 201, 210}
+
+		
+		' Translucency
+		theSession.Preferences.VisualizationVisualPreferences.Translucency = False
+
 
 		' Part Shininess
 		theSession.Preferences.VisualizationVisualPreferences.FinishEffectInShadedMode = NXOpen.Preferences.SessionVisualizationVisual.FinishEffect.PartShininess
 
-		
+
+		' Turn off Edges 
+		workPart.ModelingViews.WorkView.VisualizationVisualPreferences.ShadedEdgeStyle = NXOpen.Preferences.ViewVisualizationVisual.ShadedEdgeStyleType.None
+
+
 		' Plain White Background
 		Dim background1 As NXOpen.Display.Background = Nothing
 		background1 = workPart.Views.CreateBackground(workPart.ModelingViews.WorkView, False)
@@ -59,20 +76,24 @@ Module NXJournal
 		lightBuilder1 = workPart.Views.CreateLightBuilder(light1)
 		lighting1.SetLightBuilderInList(0, lightBuilder1)
 
+
 		Dim light2 As NXOpen.Light = CType(workPart.Lights.FindObject("Scene Left Top"), NXOpen.Light)
 		Dim lightBuilder2 As NXOpen.Display.LightBuilder = Nothing
 		lightBuilder2 = workPart.Views.CreateLightBuilder(light2)
 		lighting1.SetLightBuilderInList(1, lightBuilder2)
+
 
 		Dim light3 As NXOpen.Light = CType(workPart.Lights.FindObject("Scene Right Top"), NXOpen.Light)
 		Dim lightBuilder3 As NXOpen.Display.LightBuilder = Nothing
 		lightBuilder3 = workPart.Views.CreateLightBuilder(light3)
 		lighting1.SetLightBuilderInList(2, lightBuilder3)
 
+
 		Dim light4 As NXOpen.Light = CType(workPart.Lights.FindObject("Scene Left Bottom"), NXOpen.Light)
 		Dim lightBuilder4 As NXOpen.Display.LightBuilder = Nothing
 		lightBuilder4 = workPart.Views.CreateLightBuilder(light4)
 		lighting1.SetLightBuilderInList(3, lightBuilder4)
+
 
 		Dim light5 As NXOpen.Light = CType(workPart.Lights.FindObject("Scene Right Bottom"), NXOpen.Light)
 		Dim lightBuilder5 As NXOpen.Display.LightBuilder = Nothing
@@ -83,8 +104,11 @@ Module NXJournal
 		lighting1.LightsShadedViewsLightingCollection = NXOpen.Display.Lighting.LightingCollectionType.UserDefined
 
 		lighting1.RemoveLightBuilderInList("Scene Right Bottom")
+
 		lighting1.RemoveLightBuilderInList("Scene Left Bottom")
+
 		lighting1.RemoveLightBuilderInList("Scene Right Top")
+
 		lighting1.RemoveLightBuilderInList("Scene Left Top")
 
 		lighting1.SetLightBuilderInList("Scene Ambient", 1.0)
@@ -95,89 +119,106 @@ Module NXJournal
 		lighting1.Destroy()
 
 
-		' Turn off Edges 
-		workPart.ModelingViews.WorkView.VisualizationVisualPreferences.ShadedEdgeStyle = NXOpen.Preferences.ViewVisualizationVisual.ShadedEdgeStyleType.None
-
-
-		' Hide everything that's not a body
-		Dim numberHidden1 As Integer
-		numberHidden1 = theSession.DisplayManager.HideByType(DisplayManager.ShowHideType.Sketches, _
+		' Hide known things that could be in a part that are not a body
+		Dim typeHidden1 As Integer
+		typeHidden1 = theDisplayManager.HideByType(DisplayManager.ShowHideType.Sketches, _
 		DisplayManager.ShowHideScope.AnyInAssembly)
-		Dim numberHidden12 As Integer = Nothing
-		numberHidden12 = theSession.DisplayManager.HideByType("SHOW_HIDE_TYPE_SKETCHES", _
+		Dim typeHidden12 As Integer = Nothing
+		typeHidden12 = theDisplayManager.HideByType("SHOW_HIDE_TYPE_SKETCHES", _
 		NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
-		 
-		Dim numberHidden2 As Integer
-		numberHidden2 = theSession.DisplayManager.HideByType(DisplayManager.ShowHideType.Curves, _
-		DisplayManager.ShowHideScope.AnyInAssembly)
-		Dim numberHidden21 As Integer = Nothing
-		numberHidden21 = theSession.DisplayManager.HideByType("SHOW_HIDE_TYPE_CURVES", _
-		NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
-		 
-		Dim numberHidden3 As Integer
-		numberHidden3 = theSession.DisplayManager.HideByType(DisplayManager.ShowHideType.Datums, _
-		DisplayManager.ShowHideScope.AnyInAssembly)
-		Dim numberHidden31 As Integer = Nothing
-		numberHidden31 = theSession.DisplayManager.HideByType("SHOW_HIDE_TYPE_DATUM_PLANES", _
-		NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
-
-		Dim numberHidden4 As Integer
-		numberHidden4 = theSession.DisplayManager.HideByType(DisplayManager.ShowHideType.Points, _
-		DisplayManager.ShowHideScope.AnyInAssembly)
-		Dim numberHidden41 As Integer = Nothing
-		numberHidden41 = theSession.DisplayManager.HideByType("SHOW_HIDE_TYPE_POINTS", NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
-
-		Dim numberHidden5 As Integer
-		numberHidden5 = theSession.DisplayManager.HideByType(DisplayManager.ShowHideType.Csys, _
-		DisplayManager.ShowHideScope.AnyInAssembly)
-		Dim numberHidden51 As Integer = Nothing
-		numberHidden51 = theSession.DisplayManager.HideByType("SHOW_HIDE_TYPE_CSYS", NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
-
-
-		' Change colors of bodies
-		' If a color is in "colors" it will be changed to color from "newColors" from the same index, otherwise nothing
-		' red, yellow, blue, cyan
-		Dim colors = New Integer() {186, 6, 211, 31}
-		' white, medium gray, iron gray, charcoal grey
-		Dim newColors = New Integer() {1, 159, 201, 210}
-
-		Dim tempBodyColor aS Integer
-		Dim tempBodyNewColor aS Integer
-		Dim tempBodyColorIndex As Integer
-		Dim count as integer
-		dim tempFaceColor as integer
 		
+		Dim typeHidden2 As Integer
+		typeHidden2 = theDisplayManager.HideByType(DisplayManager.ShowHideType.Curves, _
+		DisplayManager.ShowHideScope.AnyInAssembly)
+		Dim typeHidden21 As Integer = Nothing
+		typeHidden21 = theDisplayManager.HideByType("SHOW_HIDE_TYPE_CURVES", _
+		NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
+		
+		Dim typeHidden3 As Integer
+		typeHidden3 = theDisplayManager.HideByType(DisplayManager.ShowHideType.Datums, _
+		DisplayManager.ShowHideScope.AnyInAssembly)
+		Dim typeHidden31 As Integer = Nothing
+		typeHidden31 = theDisplayManager.HideByType("SHOW_HIDE_TYPE_DATUM_PLANES", _
+		NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
+
+		Dim typeHidden4 As Integer
+		typeHidden4 = theDisplayManager.HideByType(DisplayManager.ShowHideType.Points, _
+		DisplayManager.ShowHideScope.AnyInAssembly)
+		Dim typeHidden41 As Integer = Nothing
+		typeHidden41 = theDisplayManager.HideByType("SHOW_HIDE_TYPE_POINTS", _
+		NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
+
+		Dim typeHidden5 As Integer
+		typeHidden5 = theDisplayManager.HideByType(DisplayManager.ShowHideType.Csys, _
+		DisplayManager.ShowHideScope.AnyInAssembly)
+		Dim typeHidden51 As Integer = Nothing
+		typeHidden51 = theDisplayManager.HideByType("SHOW_HIDE_TYPE_CSYS", _
+		NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
+		
+		Dim typeHidden6 As Integer
+		typeHidden6 = theDisplayManager.HideByType(DisplayManager.ShowHideType.DrawingAnnotation, _
+		DisplayManager.ShowHideScope.AnyInAssembly)
+		Dim typeHidden61 As Integer = Nothing
+		typeHidden61 = theDisplayManager.HideByType("SHOW_HIDE_TYPE_DRAWING_ANNOTATION", _
+		NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
+		
+		Dim typeHidden7 As Integer
+		typeHidden7 = theDisplayManager.HideByType(DisplayManager.ShowHideType.PMI, _
+		DisplayManager.ShowHideScope.AnyInAssembly)
+		Dim typeHidden71 As Integer = Nothing
+		typeHidden71 = theDisplayManager.HideByType("SHOW_HIDE_TYPE_PMI", _
+		NXOpen.DisplayManager.ShowHideScope.AnyInAssembly)
+		
+		
+		' ' If you ever need to hide some other group - look here for the type
+        ' Dim myTypes() = theDisplayManager.GetShowableHideableTypes()
+        ' lw.Open()
+        ' lw.WriteLine("ShowableHideableTypes:")
+        ' For Each myType As String In types
+            ' lw.WriteLine(myType)
+        ' Next
+        ' lw.Close()
+		
+		
+		' Change colors of bodies			
+		' Values of changed colors to be changed are in the beginning, look for the "colors" variable
+		Dim tempBodyColor As Integer
+		Dim tempBodyNewColor As Integer
+		Dim tempBodyColorIndex As Integer
+		Dim count As Integer
+		Dim tempFaceColor As Integer
 		
 		For Each tempFeature As Features.Feature In workPart.Features
 			
 			Dim featureBodies() As DisplayableObject
 			featureBodies = tempFeature.GetBodies()
-						
+					
 			For Each tempBody As Body In featureBodies
 				
 				'Dim myBodies(0) As DisplayableObject
 				'myBodies(0)=tempBody			 
 				
-				for each myFace as NXOpen.Face in tempBody.GetFaces
-										
+				For Each myFace As NXOpen.Face In tempBody.GetFaces
+					
+					
 					tempFaceColor = myFace.Color					
 					tempBodyColorIndex = Array.IndexOf(colors, tempFaceColor)
 					
 					If Not tempBodyColorIndex=-1 Then
-						tempBodyNewColor=newColors(tempBodyColorIndex)
+						tempBodyNewColor=myColors(tempBodyColorIndex)
 					Else
 						tempBodyNewColor = tempFaceColor
 					End If				
-									
+					
+					
 					myFace.Color = tempBodyNewColor
 					myFace.RedisplayObject()
-				
+					
 				Next
 		
 			Next			
-				
+			
 		Next
 
 	End Sub
 End Module
-
